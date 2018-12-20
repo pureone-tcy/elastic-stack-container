@@ -1,0 +1,47 @@
+version: "3.6"
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.5.0
+    container_name: elasticsearch
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    #environment:
+    environment:
+      - "ES_JAVA_OPTS=-Xms1024m -Xmx1024m"    
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:6.5.0
+    container_name: kibana
+    ports:
+      - "5601:5601"
+    links:
+      - elasticsearch:docker-elasticsearch
+    environment:
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+      
+  logstash:
+    image: docker.elastic.co/logstash/logstash:6.5.0
+    container_name: logstash
+    secrets:
+      - source: logstash.conf
+        target: /usr/share/logstash/pipeline/logstash.conf
+    volumes:
+      - ./logstash/input:/usr/share/logstash/input
+    links:
+      - elasticsearch:docker-elasticsearch
+    environment:
+      - "ES_JAVA_OPTS=-Xms1024m -Xmx1024m"
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+
+secrets:
+  logstash.conf:
+    file: ./logstash/pipeline/logstash.conf
