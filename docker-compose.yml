@@ -1,47 +1,48 @@
 version: "3.6"
 services:
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:6.5.0
-    container_name: elasticsearch
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-    #environment:
-    environment:
-      - "ES_JAVA_OPTS=-Xms1024m -Xmx1024m"    
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.2.0
     ports:
       - "9200:9200"
       - "9300:9300"
+    environment:
+      discovery.type: "single-node"
+      ES_JAVA_OPTS: "-Xmx1024m -Xms1024m"
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:7.2.0
+    environment:
+      LS_JAVA_OPTS: "-Xmx1024m -Xms1024m"
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+    volumes:
+      - ./logstash/pipeline:/usr/share/logstash/pipeline
+    depends_on:
+      - elasticsearch
 
   kibana:
-    image: docker.elastic.co/kibana/kibana:6.5.0
-    container_name: kibana
+    image: docker.elastic.co/kibana/kibana:7.2.0
     ports:
       - "5601:5601"
-    links:
-      - elasticsearch:docker-elasticsearch
     environment:
-      - ELASTICSEARCH_URL=http://elasticsearch:9200
-    depends_on:
-      - elasticsearch
-      
-  logstash:
-    image: docker.elastic.co/logstash/logstash:6.5.0
-    container_name: logstash
-    secrets:
-      - source: logstash.conf
-        target: /usr/share/logstash/pipeline/logstash.conf
-    volumes:
-      - ./logstash/input:/usr/share/logstash/input
-    links:
-      - elasticsearch:docker-elasticsearch
-    environment:
-      - "ES_JAVA_OPTS=-Xms1024m -Xmx1024m"
-      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      ELASTICSEARCH_URL: http://elasticsearch:9200
     depends_on:
       - elasticsearch
 
-secrets:
-  logstash.conf:
-    file: ./logstash/pipeline/logstash.conf
+#  redis:
+#    image: redis:5.0.4
+#    ports:
+#      - "6379:6379"
+#    command: redis-server
+#
+#  mysql:
+#    image: mysql:5.7
+#    ports:
+#      - "3306:3306"
+#    volumes:
+#      - ./mysql/data:/var/lib/mysql
+#      - ./mysql/init:/docker-entrypoint-initdb.d
+#    environment:
+#      MYSQL_DATABASE: xlift_local_db
+#      MYSQL_ROOT_PASSWORD: password
+#      MYSQL_USER: test
+#      MYSQL_PASSWORD: test
